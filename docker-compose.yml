@@ -1,6 +1,7 @@
 services:
   squid-manager:
-    build: .
+    image: ghcr.io/nodelibdev/squid-manager:latest
+    # build: .
     container_name: squid-manager
     restart: unless-stopped
     ports:

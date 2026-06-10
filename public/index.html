@@ -272,6 +272,17 @@
     <script>
         const data = { domain: [], ip: [] };
         let _headers = null;
+        let BASE = '';
+
+        async function initConfig() {
+            const r = await fetch('/config.json');
+            const cfg = await r.json();
+            BASE = cfg.prefix ?? '';
+        }
+
+        function apiUrl(path) {
+            return BASE + '/api/' + path;
+        }
 
         function getHeaders() {
             if (!_headers) {
@@ -311,7 +322,7 @@
         }
 
         async function loadList(type) {
-            const r = await fetch("/api/" + type, { headers: getHeaders() });
+            const r = await fetch(apiUrl(type), { headers: getHeaders() });
             if (r.status === 401) { _headers = null; return; }
             const res = await r.json();
             data[type] = res.entries;
@@ -322,7 +333,7 @@
             const inp = document.getElementById("inp-" + type);
             const entry = inp.value.trim();
             if (!entry) return;
-            const r = await fetch("/api/" + type, {
+            const r = await fetch(apiUrl(type), {
                 method: "POST", headers: getHeaders(),
                 body: JSON.stringify({ entry })
             });
@@ -334,7 +345,7 @@
         }
 
         async function delEntry(type, entry) {
-            const r = await fetch("/api/" + type, {
+            const r = await fetch(apiUrl(type), {
                 method: "DELETE", headers: getHeaders(),
                 body: JSON.stringify({ entry })
             });
@@ -346,14 +357,16 @@
         async function reloadSquid() {
             const btn = document.getElementById("btn-reload");
             btn.disabled = true; btn.textContent = "Reloading…";
-            const r = await fetch("/api/reload", { method: "POST", headers: getHeaders() });
+            const r = await fetch(apiUrl('reload'), { method: "POST", headers: getHeaders() });
             const res = await r.json();
             btn.disabled = false; btn.textContent = "⟳ Reload Squid";
             showStatus(r.ok ? "Squid reloaded successfully" : res.error, r.ok);
         }
 
-        loadList("domain");
-        loadList("ip");
+        initConfig().then(() => {
+            loadList("domain");
+            loadList("ip");
+        });
     </script>
 </body>
 
