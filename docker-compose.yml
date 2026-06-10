@@ -1,0 +1,13 @@
+services:
+  squid-manager:
+    build: .
+    container_name: squid-manager
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /etc/squid/allow_domains.txt:/data/allow_domains.txt
+      - /etc/squid/allow_ips.txt:/data/allow_ips.txt
+      - /usr/local/bin/squid-reload.sh:/usr/local/bin/squid-reload.sh:ro
+    environment:
+      - AUTH_TOKEN=your_token_here
