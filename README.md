@@ -155,3 +155,27 @@ Authorization: Bearer <token>
 | `POST` | `/api/ip` | Add an IP/CIDR — body: `{ "entry": "192.168.1.0/24" }` |
 | `DELETE` | `/api/ip` | Remove an IP — body: `{ "entry": "192.168.1.0/24" }` |
 | `POST` | `/api/reload` | Reload Squid (`squid -k reconfigure`) |
+
+
+### Example NGINX config for `APP_PREFIX` deployment
+
+```nginx
+server {
+    ...
+    location = /config.json {
+        default_type application/json;
+        return 200 '{"prefix":"squid-manager"}';
+    }
+    location /squid-manager/api {
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        proxy_pass http://localhost:3000$request_uri;
+    }
+    location /squid-manager {
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        proxy_pass http://localhost:3000/;
+    }
+    ...
+}
+```
