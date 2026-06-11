@@ -12,4 +12,5 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+sudo chmod 666 /tmp/squid-reload-pipe
 sudo systemctl enable --now squid-reload-listener

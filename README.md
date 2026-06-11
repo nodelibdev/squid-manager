@@ -44,6 +44,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+sudo chmod 666 /tmp/squid-reload-pipe
 sudo systemctl enable --now squid-reload-listener
 ```
 
@@ -51,6 +52,9 @@ sudo systemctl enable --now squid-reload-listener
 
 ```bash
 sudo touch /etc/squid/allowed_domains.txt /etc/squid/allowed_ips.txt
+
+sudo chmod 666 /etc/squid/allowed_domains.txt
+sudo chmod 666 /etc/squid/allowed_ips.txt
 ```
 
 ---
