@@ -11,7 +11,7 @@ RUN npm run build
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM node:20-alpine
 
-RUN apk add --no-cache sudo
+RUN apk add --no-cache bash
 
 WORKDIR /app
 
@@ -21,8 +21,8 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY public/ public/
 
-# Allow node user to run squid-reload.sh via sudo without password
-RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/squid-reload.sh" >> /etc/sudoers
+# Ensure /data directory is writable by node user
+RUN mkdir -p /data && chown node:node /data
 
 USER node
 EXPOSE 3000

@@ -11,8 +11,8 @@ export type ListType = 'domain' | 'ip';
 export class WhitelistService {
   private get FILES(): Record<ListType, string> {
     return {
-      domain: process.env.DOMAIN_FILE ?? '/data/allow_domains.txt',
-      ip:     process.env.IP_FILE     ?? '/data/allow_ips.txt',
+      domain: process.env.DOMAIN_FILE ?? '/data/allowed_domains.txt',
+      ip:     process.env.IP_FILE     ?? '/data/allowed_ips.txt',
     };
   }
 
@@ -54,9 +54,7 @@ export class WhitelistService {
   }
 
   async reloadSquid(): Promise<void> {
-    const cmd = process.env.RELOAD_CMD ?? 'sudo';
-    const script = process.env.RELOAD_SCRIPT ?? '/usr/local/bin/squid-reload.sh';
-    await execFileAsync(cmd, [script], { timeout: 10_000 });
-    // await execFileAsync('sudo', ['/usr/local/bin/squid-reload.sh'], { timeout: 10_000 });
+    const pipe = process.env.RELOAD_PIPE ?? '/tmp/squid-reload-pipe';
+    await fs.promises.writeFile(pipe, 'reload\n');
   }
 }

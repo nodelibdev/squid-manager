@@ -1,6 +1,6 @@
 # Squid Manager
 
-A lightweight web UI for managing Squid proxy whitelists (`allow_domains.txt`, `allow_ips.txt`) without SSHing into the server.
+A lightweight web UI for managing Squid proxy whitelists (`allowed_domains.txt`, `allowed_ips.txt`) without SSHing into the server.
 
 Built with **NestJS** (backend) and vanilla JS (frontend), packaged as a Docker container.
 
@@ -10,13 +10,13 @@ Built with **NestJS** (backend) and vanilla JS (frontend), packaged as a Docker 
 
 - Docker + Docker Compose installed on the host
 - Squid running natively on the host (`systemctl`)
-- `/etc/squid/allow_domains.txt` and `/etc/squid/allow_ips.txt` already referenced in `squid.conf`
+- `/etc/squid/allowed_domains.txt` and `/etc/squid/allowed_ips.txt` already referenced in `squid.conf`
 
 ### squid.conf (minimum)
 
 ```squid
-acl whitelist_domains dstdomain "/etc/squid/allow_domains.txt"
-acl whitelist_ips src "/etc/squid/allow_ips.txt"
+acl whitelist_domains dstdomain "/etc/squid/allowed_domains.txt"
+acl whitelist_ips src "/etc/squid/allowed_ips.txt"
 
 http_access allow whitelist_domains
 http_access allow whitelist_ips
@@ -27,28 +27,30 @@ http_access deny all
 
 ## Host setup (required before running Docker)
 
-### 1. Create the reload script
+### 1. Create Squid reload listener
 
 ```bash
-sudo tee /usr/local/bin/squid-reload.sh > /dev/null << 'EOF'
-#!/bin/bash
-systemctl reload squid
+mkfifo /tmp/squid-reload-pipe
+
+sudo tee /etc/systemd/system/squid-reload-listener.service << 'EOF'
+[Unit]
+Description=Squid reload listener
+
+[Service]
+ExecStart=/bin/sh -c 'while true; do read line < /tmp/squid-reload-pipe && systemctl reload squid; done'
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
-sudo chmod +x /usr/local/bin/squid-reload.sh
+sudo systemctl enable --now squid-reload-listener
 ```
 
-### 2. Allow the script to run without a password prompt
+### 2. Ensure the whitelist files exist
 
 ```bash
-echo "$(whoami) ALL=(ALL) NOPASSWD: /usr/local/bin/squid-reload.sh" \
-  | sudo tee /etc/sudoers.d/squid-reload
-```
-
-### 3. Ensure the whitelist files exist
-
-```bash
-sudo touch /etc/squid/allow_domains.txt /etc/squid/allow_ips.txt
+sudo touch /etc/squid/allowed_domains.txt /etc/squid/allowed_ips.txt
 ```
 
 ---
@@ -86,24 +88,20 @@ Access the UI at `http://<server-ip>:3000` — you will be prompted for the toke
 
 ```bash
 mkdir -p /tmp/squid-dev
-touch /tmp/squid-dev/allow_domains.txt /tmp/squid-dev/allow_ips.txt
+touch /tmp/squid-dev/allowed_domains.txt /tmp/squid-dev/allowed_ips.txt
 
-cat > /tmp/squid-reload.sh << 'EOF'
-#!/bin/bash
-echo "[mock] squid reloaded at $(date)"
-EOF
-chmod +x /tmp/squid-reload.sh
+mkfifo /tmp/squid-reload-pipe-dev
+# Run in new Terminal to read pipe
+while true; do read line < /tmp/squid-reload-pipe-dev && echo "[mock] squid reloaded"; done
 ```
 
 ### 2. Create `.env`
 
 ```dotenv
-AUTH_TOKEN=dev-token
-
-DOMAIN_FILE=/tmp/squid-dev/allow_domains.txt
-IP_FILE=/tmp/squid-dev/allow_ips.txt
-RELOAD_SCRIPT=/tmp/squid-reload.sh
-RELOAD_CMD=bash
+AUTH_TOKEN=changeme
+DOMAIN_FILE=/tmp/squid-dev/allowed_domains.txt
+IP_FILE=/tmp/squid-dev/allowed_ips.txt
+RELOAD_PIPE=/tmp/squid-reload-pipe-dev
 ```
 
 ### 3. Install and run
